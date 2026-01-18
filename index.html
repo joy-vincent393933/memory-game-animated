@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Memory Game – Ultra Animated</title>
+
+<style>
+/* ---------- RESET ---------- */
+* { box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+
+/* ---------- FULLSCREEN BACKGROUND ---------- */
+body {
+  margin: 0;
+  height: 100vh;
+  background: linear-gradient(270deg,#0f2027,#203a43,#2c5364);
+  background-size: 600% 600%;
+  animation: bgFlow 20s ease infinite;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: #fff;
+  overflow: hidden;
+}
+
+@keyframes bgFlow {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* ---------- APP ---------- */
+#app {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+/* ---------- SCENE SYSTEM ---------- */
+.scene {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  opacity: 0;
+  transform: scale(0.95);
+  pointer-events: none;
+}
+
+.scene.active {
+  opacity: 1;
+  transform: scale(1);
+  pointer-events: auto;
+  animation: sceneEnter 0.8s ease;
+}
+
+@keyframes sceneEnter {
+  from { opacity: 0; transform: scale(0.9); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* ---------- TEXT EFFECTS ---------- */
+h1 {
+  font-size: 64px;
+  margin: 0;
+  text-shadow: 0 0 20px rgba(255,255,255,0.6);
+  animation: glowText 2s infinite alternate;
+}
+
+h2 {
+  font-size: 40px;
+  margin-bottom: 10px;
+}
+
+p {
+  font-size: 18px;
+  opacity: 0.85;
+  max-width: 600px;
+  text-align: center;
+}
+
+@keyframes glowText {
+  from { text-shadow: 0 0 10px #fff; }
+  to { text-shadow: 0 0 30px gold; }
+}
+
+/* ---------- BUTTONS ---------- */
+button {
+  margin-top: 20px;
+  padding: 14px 28px;
+  font-size: 18px;
+  border-radius: 30px;
+  border: none;
+  cursor: pointer;
+  background: linear-gradient(135deg,gold,orange);
+  color: #000;
+  box-shadow: 0 10px 30px rgba(255,215,0,0.4);
+  transition: all 0.2s ease;
+}
+
+button:hover {
+  transform: translateY(-4px) scale(1.05);
+  box-shadow: 0 20px 40px rgba(255,215,0,0.6);
+}
+
+button:active { transform: scale(0.95); }
+
+/* ---------- MODE CARDS ---------- */
+.modes {
+  display: flex;
+  gap: 30px;
+  margin-top: 40px;
+}
+
+.mode {
+  width: 220px;
+  padding: 24px;
+  border-radius: 20px;
+  background: rgba(255,255,255,0.12);
+  backdrop-filter: blur(12px);
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.mode:hover {
+  transform: translateY(-10px) scale(1.08);
+  box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+}
+
+/* ---------- GAME UI ---------- */
+.header {
+  position: absolute;
+  top: 20px;
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  padding: 0 40px;
+  font-size: 18px;
+}
+
+.grid {
+  display: grid;
+  gap: 18px;
+}
+
+/* ---------- CARD 3D ---------- */
+.card {
+  width: 90px;
+  height: 90px;
+  perspective: 800px;
+}
+
+.card-inner {
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transition: transform 0.7s cubic-bezier(.4,.2,.2,1);
+}
+
+.card.flipped .card-inner {
+  transform: rotateY(180deg);
+}
+
+.face {
+  position: absolute;
+  inset: 0;
+  border-radius: 18px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 40px;
+  backface-visibility: hidden;
+}
+
+.back { background: linear-gradient(135deg,gold,orange); }
+.front {
+  background: #fff;
+  color: #000;
+  transform: rotateY(180deg);
+}
+
+.card.matched .front {
+  background: limegreen;
+  animation: matchPop 0.4s ease;
+}
+
+@keyframes matchPop {
+  50% { transform: rotateY(180deg) scale(1.2); }
+}
+
+/* ---------- SHAKE ---------- */
+.shake { animation: shake 0.4s; }
+
+@keyframes shake {
+  0% { transform: translateX(0); }
+  25% { transform: translateX(-10px); }
+  50% { transform: translateX(10px); }
+  75% { transform: translateX(-10px); }
+  100% { transform: translateX(0); }
+}
+</style>
+</head>
+
+<body>
+
+<div id="app">
+
+<!-- INTRO -->
+<section class="scene active" id="scene-intro">
+  <h1>MEMORY</h1>
+  <p>An immersive memory challenge</p>
+  <button onclick="go('rules')">ENTER</button>
+</section>
+
+<!-- RULES -->
+<section class="scene" id="scene-rules">
+  <h2>Rules</h2>
+  <p>Flip two cards. Match all pairs before you run out of moves.</p>
+  <button onclick="go('how')">NEXT</button>
+</section>
+
+<!-- HOW -->
+<section class="scene" id="scene-how">
+  <h2>How To Play</h2>
+  <p>Focus. Remember. Match. Win.</p>
+  <button onclick="go('modes')">CHOOSE MODE</button>
+</section>
+
+<!-- MODES -->
+<section class="scene" id="scene-modes">
+  <h2>Select Difficulty</h2>
+  <div class="modes">
+    <div class="mode" onclick="startGame(4,20)">Beginner</div>
+    <div class="mode" onclick="startGame(5,28)">Pro</div>
+    <div class="mode" onclick="startGame(6,36)">Master</div>
+  </div>
+</section>
+
+<!-- GAME -->
+<section class="scene" id="scene-game">
+  <div class="header">
+    <div>⏱ <span id="time">0</span>s</div>
+    <div>🎯 <span id="moves">0</span>/<span id="maxMoves"></span></div>
+  </div>
+  <div class="grid" id="grid"></div>
+</section>
+
+<!-- WIN -->
+<section class="scene" id="scene-win">
+  <h1>VICTORY</h1>
+</section>
+
+<!-- LOSE -->
+<section class="scene" id="scene-lose">
+  <h1>DEFEAT</h1>
+</section>
+
+</div>
+
+<script>
+const scenes=document.querySelectorAll(".scene");
+function go(name){
+  scenes.forEach(s=>s.classList.remove("active"));
+  document.getElementById("scene-"+name).classList.add("active");
+}
+
+/* GAME LOGIC */
+const icons=["🍎","🍌","🍇","🍉","🍒","🍓","🥝","🍍","🥑","🍋","🍑","🍊"];
+let first,second,lock,matches,moves,maxMoves,timer,time,pairs;
+
+function startGame(cols,limit){
+  go("game");
+  maxMoves=limit; moves=0; matches=0; time=0;
+  document.getElementById("moves").textContent=0;
+  document.getElementById("maxMoves").textContent=limit;
+  document.getElementById("time").textContent=0;
+
+  const grid=document.getElementById("grid");
+  grid.style.gridTemplateColumns=`repeat(${cols},90px)`;
+  grid.innerHTML="";
+  pairs=cols*2;
+
+  clearInterval(timer);
+  timer=setInterval(()=>{time++;document.getElementById("time").textContent=time},1000);
+
+  const deck=[...icons.slice(0,pairs),...icons.slice(0,pairs)]
+    .sort(()=>Math.random()-0.5);
+
+  deck.forEach(icon=>{
+    const c=document.createElement("div");
+    c.className="card";
+    c.innerHTML=`
+      <div class="card-inner">
+        <div class="face back"></div>
+        <div class="face front">${icon}</div>
+      </div>`;
+    c.dataset.icon=icon;
+    c.onclick=()=>flip(c);
+    grid.appendChild(c);
+  });
+}
+
+function flip(card){
+  if(lock||card.classList.contains("flipped")||card.classList.contains("matched"))return;
+  card.classList.add("flipped");
+
+  if(!first){ first=card; }
+  else{
+    second=card;
+    moves++;
+    document.getElementById("moves").textContent=moves;
+
+    if(moves>maxMoves){ end(false); return; }
+
+    if(first.dataset.icon===second.dataset.icon){
+      first.classList.add("matched");
+      second.classList.add("matched");
+      matches++;
+      first=second=null;
+      if(matches===pairs) end(true);
+    }else{
+      lock=true;
+      setTimeout(()=>{
+        first.classList.remove("flipped");
+        second.classList.remove("flipped");
+        first=second=null;
+        lock=false;
+      },800);
+    }
+  }
+}
+
+function end(win){
+  clearInterval(timer);
+  go(win?"win":"lose");
+  setTimeout(()=>go("modes"),2500);
+}
+</script>
+
+</body>
+</html>
